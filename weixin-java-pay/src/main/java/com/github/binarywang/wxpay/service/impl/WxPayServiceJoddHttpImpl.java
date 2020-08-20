@@ -1,5 +1,6 @@
 package com.github.binarywang.wxpay.service.impl;
 
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import javax.net.ssl.SSLContext;
 
@@ -30,7 +31,9 @@ public class WxPayServiceJoddHttpImpl extends BaseWxPayServiceImpl {
       byte[] responseBytes = request.send().bodyBytes();
       final String responseString = Base64.encodeToString(responseBytes);
       this.log.info("\n【请求地址】：{}\n【请求数据】：{}\n【响应数据(Base64编码后)】：{}", url, requestStr, responseString);
-      wxApiData.set(new WxPayApiData(url, requestStr, responseString, null));
+      if (this.getConfig().isIfSaveApiData()) {
+        wxApiData.set(new WxPayApiData(url, requestStr, responseString, null));
+      }
       return responseBytes;
     } catch (Exception e) {
       this.log.error("\n【请求地址】：{}\n【请求数据】：{}\n【异常信息】：{}", url, requestStr, e.getMessage());
@@ -46,13 +49,25 @@ public class WxPayServiceJoddHttpImpl extends BaseWxPayServiceImpl {
       String responseString = this.getResponseString(request.send());
 
       this.log.info("\n【请求地址】：{}\n【请求数据】：{}\n【响应数据】：{}", url, requestStr, responseString);
-      wxApiData.set(new WxPayApiData(url, requestStr, responseString, null));
+      if (this.getConfig().isIfSaveApiData()) {
+        wxApiData.set(new WxPayApiData(url, requestStr, responseString, null));
+      }
       return responseString;
     } catch (Exception e) {
       this.log.error("\n【请求地址】：{}\n【请求数据】：{}\n【异常信息】：{}", url, requestStr, e.getMessage());
       wxApiData.set(new WxPayApiData(url, requestStr, null, e.getMessage()));
       throw new WxPayException(e.getMessage(), e);
     }
+  }
+
+  @Override
+  public String postV3(String url, String requestStr) throws WxPayException {
+    return null;
+  }
+
+  @Override
+  public String getV3(URI url) throws WxPayException {
+    return null;
   }
 
   private HttpRequest buildHttpRequest(String url, String requestStr, boolean useKey) throws WxPayException {
@@ -72,6 +87,10 @@ public class WxPayServiceJoddHttpImpl extends BaseWxPayServiceImpl {
     }
 
     if (StringUtils.isNotBlank(this.getConfig().getHttpProxyHost()) && this.getConfig().getHttpProxyPort() > 0) {
+      if (StringUtils.isEmpty(this.getConfig().getHttpProxyUsername())) {
+        this.getConfig().setHttpProxyUsername("whatever");
+      }
+
       ProxyInfo httpProxy = new ProxyInfo(ProxyType.HTTP, this.getConfig().getHttpProxyHost(), this.getConfig().getHttpProxyPort(),
         this.getConfig().getHttpProxyUsername(), this.getConfig().getHttpProxyPassword());
       HttpConnectionProvider provider = request.connectionProvider();
